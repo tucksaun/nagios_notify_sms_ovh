@@ -164,12 +164,42 @@ if (nb_files > config['throttling']['limit']) then
 else
   # send the SMS through the OVH API
   begin
-    wsdl = 'https://www.ovh.com/soapi/soapi-re-1.9.wsdl'
+    wsdl = 'https://www.ovh.com/soapi/soapi-re-1.52.wsdl'
     soapi = SOAP::WSDLDriverFactory.new(wsdl).create_rpc_driver
 
-    session = soapi.login(config['ovhManager']['nicHandle'], config['ovhManager']['password'], 'en', false)
     unless options[:dont_send_sms]
-      result = soapi.telephonySmsSend(session, config['ovhManager']['smsAccount'], config['ovhManager']['fromNumber'], phone_number, message, nil, nil, nil, nil)
+      if config['ovhManager']['smsUsername']
+        result = soapi.telephonySmsUserSend(
+          config['ovhManager']['smsUsername'],
+          config['ovhManager']['password'],
+          config['ovhManager']['smsAccount'],
+          config['ovhManager']['fromNumber'],
+          phone_number,
+          message,
+          nil,
+          nil,
+          nil,
+          nil,
+          nil,
+          nil,
+          false)
+      else
+        session = soapi.login(config['ovhManager']['nicHandle'], config['ovhManager']['password'], 'en', false)
+        result = soapi.telephonySmsSend(
+          session,
+          config['ovhManager']['smsAccount'],
+          config['ovhManager']['fromNumber'],
+          phone_number,
+          message,
+          nil,
+          nil,
+          nil,
+          nil,
+          nil,
+          nil,
+          false
+        )
+      end
     end
 
   rescue Exception => e
@@ -187,16 +217,18 @@ END_OF_MESSAGE
   end
 end
 
-# then check the number of SMS left
-smsleft = soapi.telephonySmsCreditLeft(session, config['ovhManager']['smsAccount']).to_i
-if smsleft < config['credit']['threshold'] then
-  msg = "only #{smsleft} credits left for the nagios SMS alert !"
-  Net::SMTP.start(config['errorMail']['server']) do |smtp|
-    smtp.send_message(msg, config['errorMail']['from'], config['errorMail']['to'])
+if session
+  # then check the number of SMS left
+  smsleft = soapi.telephonySmsCreditLeft(session, config['ovhManager']['smsAccount']).to_i
+  if smsleft < config['credit']['threshold'] then
+    msg = "only #{smsleft} credits left for the nagios SMS alert !"
+    Net::SMTP.start(config['errorMail']['server']) do |smtp|
+      smtp.send_message(msg, config['errorMail']['from'], config['errorMail']['to'])
+    end
   end
-end
 
-# Logout
-soapi.logout(session)
+  # Logout
+  soapi.logout(session)
+end
 # close lock file
 fp.close

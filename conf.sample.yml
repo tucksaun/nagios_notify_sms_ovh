@@ -1,6 +1,7 @@
 ovhManager:
   nicHandle: EXAMPLE-OVH
   password: changeme
+  smsUsername: username_exemple
   smsAccount: sms-example-1
   fromNumber: "+339XXXXXX"
 strip:
