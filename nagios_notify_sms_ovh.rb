@@ -182,7 +182,7 @@ else
           nil,
           nil,
           nil,
-          false)
+          true)
       else
         session = soapi.login(config['ovhManager']['nicHandle'], config['ovhManager']['password'], 'en', false)
         result = soapi.telephonySmsSend(
@@ -197,7 +197,7 @@ else
           nil,
           nil,
           nil,
-          false
+          true
         )
       end
     end
